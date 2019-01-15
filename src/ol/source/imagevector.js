@@ -314,3 +314,35 @@ ol.source.ImageVector.prototype.setStyle = function(style) {
     undefined : ol.style.Style.createFunction(this.style_);
   this.changed();
 };
+
+/**
+ * @inheritDoc
+ */
+ol.source.ImageVector.prototype.disposeInternal = function() {
+  if (this.canvasContext_ && this.canvasContext_.canvas) {
+    // It seems that Safari/UIWebView does not GC canvases very actively:
+    // https://github.com/openlayers/openlayers/issues/8956
+    // https://stackoverflow.com/questions/52532614/total-canvas-memory-use-exceeds-the-maximum-limit-safari-12
+    //
+    // And on iOS 12 / Safari 12 canvas memory has been halved:
+    // https://github.com/WebKit/webkit/commit/5d5b478917c685e50d1032ccf761ca53fc8f1b74#diff-b411cd4839e4bbc17b00570536abfa8f
+    //
+    // Setting canvas width and height to zero before rendering a new canvas works
+    // at least on iOS 12.1.1 Safari browser, when testing things like:
+    // https://stackoverflow.com/a/53005607/1667913
+    //
+    // So this has been added here in the hopes that it will help,
+    // even though the issue has not been reliably reproduced in a
+    // iOS 12 + Cordova + OpenLayers 4.6.5 environment.
+
+    // First resetting styles, because supposedly having CSS width/height set
+    // will cause width/height canvas element attributes to not do anything:
+    // https://stackoverflow.com/a/8349409/1667913
+    this.canvasContext_.canvas.removeAttribute('style');
+
+    // Then changing the element attributes:
+    this.canvasContext_.canvas.width = this.canvasContext_.canvas.height = 0;
+  }
+
+  ol.source.ImageCanvas.prototype.disposeInternal.call(this);
+};

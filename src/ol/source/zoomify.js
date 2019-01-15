@@ -209,6 +209,31 @@ ol.source.Zoomify.Tile_.prototype.getImage = function() {
 };
 
 /**
+ * @inheritDoc
+ */
+ol.source.Zoomify.Tile_.prototype.disposeInternal = function() {
+  if (this.zoomifyImage_) {
+    // It seems that Safari/UIWebView does not GC canvases very actively:
+    // https://github.com/openlayers/openlayers/issues/8956
+    // https://stackoverflow.com/questions/52532614/total-canvas-memory-use-exceeds-the-maximum-limit-safari-12
+    //
+    // And on iOS 12 / Safari 12 canvas memory has been halved:
+    // https://github.com/WebKit/webkit/commit/5d5b478917c685e50d1032ccf761ca53fc8f1b74#diff-b411cd4839e4bbc17b00570536abfa8f
+    //
+    // Setting canvas width and height to zero before rendering a new canvas works
+    // at least on iOS 12.1.1 Safari browser, when testing things like:
+    // https://stackoverflow.com/a/53005607/1667913
+    //
+    // So this has been added here in the hopes that it will help,
+    // even though the issue has not been reliably reproduced in a
+    // iOS 12 + Cordova + OpenLayers 4.6.5 environment:
+    this.zoomifyImage_.width = this.zoomifyImage_.height = 0;
+  }
+
+  ol.ImageTile.prototype.disposeInternal.call(this);
+};
+
+/**
  * @enum {string}
  * @private
  */
